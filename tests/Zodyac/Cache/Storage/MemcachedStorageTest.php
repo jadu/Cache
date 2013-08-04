@@ -11,6 +11,10 @@ class MemcachedStorageTest extends \PHPUnit_Framework_TestCase
 
     public function setUp()
     {
+        if (!class_exists('Memcached')) {
+            $this->markTestSkipped('Install the Memcached extension to run the MemcachedStorage tests.');
+        }
+
         $this->memcached = $this->getMock('Memcached');
         $this->storage = new MemcachedStorage($this->memcached);
     }

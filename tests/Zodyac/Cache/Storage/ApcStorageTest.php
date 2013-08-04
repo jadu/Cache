@@ -15,6 +15,10 @@ class ApcStorageTest extends \PHPUnit_Framework_TestCase
 
     public function setUp()
     {
+        if (!function_exists('apc_clear_cache')) {
+            $this->markTestSkipped('Enable APC to run the ApcStorage tests.');
+        }
+
         // Clear the user cache
         apc_clear_cache('user');
 
