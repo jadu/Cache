@@ -2,7 +2,7 @@
 
 Caching library with a unified interface for multiple backends
 
-[![Latest Stable Version](https://poser.pugx.org/zodyac/cache/v/stable.png)](https://packagist.org/packages/zodyac/cache)
+[![Latest Stable Version](https://poser.pugx.org/zodyac/cache/v/stable.png)](https://packagist.org/packages/zodyac/cache) [![Build Status](https://secure.travis-ci.org/jadu/Cache.png)](http://travis-ci.org/jadu/Cache)
 
 ## Usage
 
