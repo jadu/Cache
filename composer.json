@@ -1,0 +1,23 @@
+{
+    "name": "zodyac/cache",
+    "description": "Caching library with support for multiple cache backends",
+    "keywords": ["cache", "memcached"],
+    "homepage": "http://jadu.github.io",
+    "license": "NCSA",
+    "authors": [
+        {
+            "name": "Tom Graham",
+            "email": "tom.graham@jadu.co.uk"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.2",
+        "psr/log": "1.0.0"
+    },
+    "require-dev": {
+        "doctrine/cache": "*"
+    },
+    "autoload": {
+        "psr-0": { "Zodyac\\Cache": "src/" }
+    }
+}
