@@ -2,6 +2,8 @@
 
 namespace Zodyac\Cache;
 
+use Zodyac\Cache\Exception\RuntimeException;
+
 class CacheTest extends \PHPUnit_Framework_TestCase
 {
     public $storage;
@@ -71,6 +73,31 @@ class CacheTest extends \PHPUnit_Framework_TestCase
         $this->cache->get($key);
     }
 
+    public function testGetLogsException()
+    {
+        $key = 'test';
+
+        $this->storage->expects($this->any())->method('get')
+            ->will($this->throwException(new RuntimeException('Unable to connect')));
+
+        $this->logger->expects($this->once())->method('error')
+            ->with($this->equalTo('Cache: Unable to get "test" due to error "Unable to connect"'));
+
+        $this->cache->setLogger($this->logger);
+        $this->cache->get($key);
+    }
+
+    public function testGetReturnsCacheMissOnException()
+    {
+        $key = 'test';
+        $result = new Result($key, false);
+
+        $this->storage->expects($this->any())->method('get')
+            ->will($this->throwException(new RuntimeException('Unable to connect')));
+
+        $this->assertEquals($result, $this->cache->get($key));
+    }
+
     public function testSet()
     {
         $key = 'test';
@@ -78,9 +105,10 @@ class CacheTest extends \PHPUnit_Framework_TestCase
         $expiration = 3600;
 
         $this->storage->expects($this->once())->method('set')
-            ->with($this->equalTo($key), $this->equalTo($value), $this->equalTo($expiration));
+            ->with($this->equalTo($key), $this->equalTo($value), $this->equalTo($expiration))
+            ->will($this->returnValue(true));
 
-        $this->cache->set($key, $value, $expiration);
+        $this->assertTrue($this->cache->set($key, $value, $expiration));
     }
 
     public function testSetLogsOperation()
@@ -90,6 +118,26 @@ class CacheTest extends \PHPUnit_Framework_TestCase
 
         $this->cache->setLogger($this->logger);
         $this->cache->set('test', 'value', 3600);
+    }
+
+    public function testSetLogsException()
+    {
+        $this->storage->expects($this->any())->method('set')
+            ->will($this->throwException(new RuntimeException('Unable to connect')));
+
+        $this->logger->expects($this->once())->method('error')
+            ->with($this->equalTo('Cache: Unable to set "test" due to error "Unable to connect"'));
+
+        $this->cache->setLogger($this->logger);
+        $this->cache->set('test', 'value', 3600);
+    }
+
+    public function testSetReturnsFalseOnException()
+    {
+        $this->storage->expects($this->any())->method('set')
+            ->will($this->throwException(new RuntimeException('Unable to connect')));
+
+        $this->assertFalse($this->cache->set('test', 'value', 3600));
     }
 
     public function testIncrementReturnsNewValue()
@@ -115,14 +163,35 @@ class CacheTest extends \PHPUnit_Framework_TestCase
         $this->cache->increment('test', 'value', 3600);
     }
 
+    public function testIncrementLogsException()
+    {
+        $this->storage->expects($this->any())->method('increment')
+            ->will($this->throwException(new RuntimeException('Unable to connect')));
+
+        $this->logger->expects($this->once())->method('error')
+            ->with($this->equalTo('Cache: Unable to increment "test" due to error "Unable to connect"'));
+
+        $this->cache->setLogger($this->logger);
+        $this->cache->increment('test', 'value', 3600);
+    }
+
+    public function testIncrementReturnsZeroOnException()
+    {
+        $this->storage->expects($this->any())->method('increment')
+            ->will($this->throwException(new RuntimeException('Unable to connect')));
+
+        $this->assertEquals(0, $this->cache->increment('test', 'value', 3600));
+    }
+
     public function testDelete()
     {
         $key = 'test';
 
         $this->storage->expects($this->once())->method('delete')
-            ->with($this->equalTo($key));
+            ->with($this->equalTo($key))
+            ->will($this->returnValue(true));
 
-        $this->cache->delete($key);
+        $this->assertTrue($this->cache->delete($key));
     }
 
     public function testDeleteLogsOperation()
@@ -132,6 +201,26 @@ class CacheTest extends \PHPUnit_Framework_TestCase
 
         $this->cache->setLogger($this->logger);
         $this->cache->delete('test');
+    }
+
+    public function testDeleteLogsException()
+    {
+        $this->storage->expects($this->any())->method('delete')
+            ->will($this->throwException(new RuntimeException('Unable to connect')));
+
+        $this->logger->expects($this->once())->method('error')
+            ->with($this->equalTo('Cache: Unable to delete "test" due to error "Unable to connect"'));
+
+        $this->cache->setLogger($this->logger);
+        $this->cache->delete('test');
+    }
+
+    public function testDeleteReturnsFalseOnException()
+    {
+        $this->storage->expects($this->any())->method('delete')
+            ->will($this->throwException(new RuntimeException('Unable to connect')));
+
+        $this->assertFalse($this->cache->delete('test'));
     }
 
     public function testCreateKey()
@@ -228,6 +317,27 @@ class CacheTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('Site:1/Application:2/test', $key);
     }
 
+    public function testCreateKeyLogsExceptions()
+    {
+        $this->storage->expects($this->any())->method('get')
+            ->will($this->throwException(new RuntimeException('Unable to connect')));
+
+        $this->logger->expects($this->once())->method('error')
+            ->with($this->equalTo('Cache: Unable to get counter for tag "Site" due to error "Unable to connect"'));
+
+        $this->cache->setLogger($this->logger);
+        $this->cache->createKey('test', array('Site'));
+    }
+
+    public function testCreateKeyUsesZeroCounterOnException()
+    {
+        $this->storage->expects($this->any())->method('get')
+            ->will($this->throwException(new RuntimeException('Unable to connect')));
+
+        $key = $this->cache->createKey('test', array('Site', 'Application'));
+        $this->assertEquals('Site:0/Application:0/test', $key);
+    }
+
     public function testInvalidateTagIncrementsTagKey()
     {
         $this->storage->expects($this->once())->method('increment')
@@ -245,11 +355,32 @@ class CacheTest extends \PHPUnit_Framework_TestCase
         $this->cache->invalidateTag('Site');
     }
 
+    public function testInvalidateTagLogsException()
+    {
+        $this->storage->expects($this->any())->method('increment')
+            ->will($this->throwException(new RuntimeException('Unable to connect')));
+
+        $this->logger->expects($this->once())->method('error')
+            ->with($this->equalTo('Cache: Unable to invalidate tag "Site" due to error "Unable to connect"'));
+
+        $this->cache->setLogger($this->logger);
+        $this->cache->invalidateTag('Site');
+    }
+
+    public function testInvalidateTagReturnsFalseOnException()
+    {
+        $this->storage->expects($this->any())->method('increment')
+            ->will($this->throwException(new RuntimeException('Unable to connect')));
+
+        $this->assertFalse($this->cache->invalidateTag('Site'));
+    }
+
     public function testFlush()
     {
-        $this->storage->expects($this->once())->method('flush');
+        $this->storage->expects($this->once())->method('flush')
+            ->will($this->returnValue(true));
 
-        $this->cache->flush();
+        $this->assertTrue($this->cache->flush());
     }
 
     public function testFlushLogsOperation()
@@ -259,5 +390,25 @@ class CacheTest extends \PHPUnit_Framework_TestCase
 
         $this->cache->setLogger($this->logger);
         $this->cache->flush();
+    }
+
+    public function testFlushLogsException()
+    {
+        $this->storage->expects($this->any())->method('flush')
+            ->will($this->throwException(new RuntimeException('Unable to connect')));
+
+        $this->logger->expects($this->once())->method('error')
+            ->with($this->equalTo('Cache: Unable to flush due to error "Unable to connect"'));
+
+        $this->cache->setLogger($this->logger);
+        $this->cache->flush();
+    }
+
+    public function testFlushReturnsFalseOnException()
+    {
+        $this->storage->expects($this->any())->method('flush')
+            ->will($this->throwException(new RuntimeException('Unable to connect')));
+
+        $this->assertFalse($this->cache->flush());
     }
 }

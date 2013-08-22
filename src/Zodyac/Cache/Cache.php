@@ -4,6 +4,8 @@ namespace Zodyac\Cache;
 
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
+use Zodyac\Cache\Exception\ExceptionInterface;
+use Zodyac\Cache\Result;
 use Zodyac\Cache\Storage\StorageInterface;
 
 class Cache implements LoggerAwareInterface
@@ -61,7 +63,16 @@ class Cache implements LoggerAwareInterface
      */
     public function get($key)
     {
-        $result = $this->storage->get($key);
+        try {
+            $result = $this->storage->get($key);
+        } catch (ExceptionInterface $exception) {
+            if ($this->logger) {
+                $this->logger->error(sprintf('Cache: Unable to get "%s" due to error "%s"', $key, $exception->getMessage()));
+            }
+
+            // Return cache miss
+            return new Result($key, false);
+        }
 
         if ($this->logger) {
             $this->logger->debug(sprintf('Cache %s "%s"', $result->isHit() ? 'hit' : 'miss', $key));
@@ -80,11 +91,21 @@ class Cache implements LoggerAwareInterface
      */
     public function set($key, $value, $expiration = null)
     {
+        try {
+            $result = $this->storage->set($key, $value, $expiration);
+        } catch (ExceptionInterface $exception) {
+            if ($this->logger) {
+                $this->logger->error(sprintf('Cache: Unable to set "%s" due to error "%s"', $key, $exception->getMessage()));
+            }
+
+            return false;
+        }
+
         if ($this->logger) {
             $this->logger->debug(sprintf('Cache set "%s"', $key));
         }
 
-        return $this->storage->set($key, $value, $expiration);
+        return $result;
     }
 
     /**
@@ -93,11 +114,19 @@ class Cache implements LoggerAwareInterface
      * @param string $key
      * @param integer $value The initial value
      * @param integer $expiration The time in seconds before the cache key is invalidated
-     * @return integer The new incremented value (or the initial value if the cache key was not found)
+     * @return integer The new incremented value or False if the value could not be incremented
      */
     public function increment($key, $value = null, $expiration = null)
     {
-        $newValue = $this->storage->increment($key, $value, $expiration);
+        try {
+            $newValue = $this->storage->increment($key, $value, $expiration);
+        } catch (ExceptionInterface $exception) {
+            if ($this->logger) {
+                $this->logger->error(sprintf('Cache: Unable to increment "%s" due to error "%s"', $key, $exception->getMessage()));
+            }
+
+            return false;
+        }
 
         if ($this->logger) {
             $this->logger->debug(sprintf('Cache incremented "%s" with new value %d', $key, $newValue));
@@ -114,11 +143,21 @@ class Cache implements LoggerAwareInterface
      */
     public function delete($key)
     {
+        try {
+            $result = $this->storage->delete($key);
+        } catch (ExceptionInterface $exception) {
+            if ($this->logger) {
+                $this->logger->error(sprintf('Cache: Unable to delete "%s" due to error "%s"', $key, $exception->getMessage()));
+            }
+
+            return false;
+        }
+
         if ($this->logger) {
             $this->logger->debug(sprintf('Cache delete "%s"', $key));
         }
 
-        return $this->storage->delete($key);
+        return $result;
     }
 
     /**
@@ -128,11 +167,21 @@ class Cache implements LoggerAwareInterface
      */
     public function flush()
     {
+        try {
+            $result = $this->storage->flush();
+        } catch (ExceptionInterface $exception) {
+            if ($this->logger) {
+                $this->logger->error(sprintf('Cache: Unable to flush due to error "%s"', $exception->getMessage()));
+            }
+
+            return false;
+        }
+
         if ($this->logger) {
             $this->logger->debug('Cache flush');
         }
 
-        return $this->storage->flush();
+        return $result;
     }
 
     /**
@@ -143,8 +192,16 @@ class Cache implements LoggerAwareInterface
      */
     public function invalidateTag($tag)
     {
-        $key = $this->createTagKey($tag);
-        $this->storage->increment($key, time());
+        try {
+            $key = $this->createTagKey($tag);
+            $this->storage->increment($key, time());
+        } catch (ExceptionInterface $exception) {
+            if ($this->logger) {
+                $this->logger->error(sprintf('Cache: Unable to invalidate tag "%s" due to error "%s"', $tag, $exception->getMessage()));
+            }
+
+            return false;
+        }
 
         if ($this->logger) {
             $this->logger->debug(sprintf('Cache invalidate tag "%s"', $tag));
@@ -198,17 +255,26 @@ class Cache implements LoggerAwareInterface
     {
         $key = $this->createTagKey($tag);
 
-        $result = $this->storage->get($key);
-        if ($result->isMiss()) {
-            $counter = time();
-            if (!$this->storage->add($key, $counter)) {
-                $result = $this->storage->get($key);
-                if ($result->isHit()) {
-                    $counter = $result->getValue();
+        try {
+            $result = $this->storage->get($key);
+            if ($result->isMiss()) {
+                $counter = time();
+                if (!$this->storage->add($key, $counter)) {
+                    $result = $this->storage->get($key);
+                    if ($result->isHit()) {
+                        $counter = $result->getValue();
+                    }
                 }
+            } else {
+                $counter = $result->getValue();
             }
-        } else {
-            $counter = $result->getValue();
+        } catch (ExceptionInterface $exception) {
+            if ($this->logger) {
+                $this->logger->error(sprintf('Cache: Unable to get counter for tag "%s" due to error "%s"', $tag, $exception->getMessage()));
+            }
+
+            // Use the initial value on error
+            $counter = 0;
         }
 
         return $tag . ':' . $counter;
