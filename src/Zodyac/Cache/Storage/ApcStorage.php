@@ -32,17 +32,17 @@ class ApcStorage implements StorageInterface
         return $results;
     }
 
-    public function set($key, $value, $expiration = null)
+    public function set($key, $value, $expiration = 0)
     {
         return apc_store($key, $value, $expiration);
     }
 
-    public function add($key, $value, $expiration = null)
+    public function add($key, $value, $expiration = 0)
     {
         return apc_add($key, $value, $expiration);
     }
 
-    public function increment($key, $value = 0, $expiration = null)
+    public function increment($key, $value = 0, $expiration = 0)
     {
         $value = (int) $value;
 

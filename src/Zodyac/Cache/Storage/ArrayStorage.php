@@ -38,14 +38,14 @@ class ArrayStorage implements StorageInterface
         return $results;
     }
 
-    public function set($key, $value, $expiration = null)
+    public function set($key, $value, $expiration = 0)
     {
         $this->data[$key] = $value;
 
         return true;
     }
 
-    public function add($key, $value, $expiration = null)
+    public function add($key, $value, $expiration = 0)
     {
         if (isset($this->data[$key])) {
             return false;
@@ -56,7 +56,7 @@ class ArrayStorage implements StorageInterface
         return true;
     }
 
-    public function increment($key, $value = 0, $expiration = null)
+    public function increment($key, $value = 0, $expiration = 0)
     {
         if (!isset($this->data[$key])) {
             $value = (int) $value;

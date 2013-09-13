@@ -89,7 +89,7 @@ class Cache implements LoggerAwareInterface
      * @param integer $expiration The time in seconds before the cache key is invalidated
      * @return boolean Returns True if the value was set
      */
-    public function set($key, $value, $expiration = null)
+    public function set($key, $value, $expiration = 0)
     {
         try {
             $result = $this->storage->set($key, $value, $expiration);
@@ -116,7 +116,7 @@ class Cache implements LoggerAwareInterface
      * @param integer $expiration The time in seconds before the cache key is invalidated
      * @return integer The new incremented value or False if the value could not be incremented
      */
-    public function increment($key, $value = null, $expiration = null)
+    public function increment($key, $value = null, $expiration = 0)
     {
         try {
             $newValue = $this->storage->increment($key, $value, $expiration);

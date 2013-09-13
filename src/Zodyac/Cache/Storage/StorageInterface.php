@@ -31,7 +31,7 @@ interface StorageInterface
      * @param integer $expiration The time in seconds before the cache key is invalidated
      * @return boolean Returns True if the value was set
      */
-    public function set($key, $value, $expiration = null);
+    public function set($key, $value, $expiration = 0);
 
     /**
      * Adds the value in the cache at the given key.
@@ -41,7 +41,7 @@ interface StorageInterface
      * @param integer $expiration The time in seconds before the cache key is invalidated
      * @return boolean Returns True if the value was set, False if it could not be set
      */
-    public function add($key, $value, $expiration = null);
+    public function add($key, $value, $expiration = 0);
 
     /**
      * Increments the counter at the given key.
@@ -51,7 +51,7 @@ interface StorageInterface
      * @param integer $expiration The time in seconds before the cache key is invalidated
      * @return integer The new incremented value (or the initial value if the cache key was not found)
      */
-    public function increment($key, $value = 0, $expiration = null);
+    public function increment($key, $value = 0, $expiration = 0);
 
     /**
      * Deletes the value at the given key.

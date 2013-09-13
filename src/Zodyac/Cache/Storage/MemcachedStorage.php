@@ -66,7 +66,7 @@ class MemcachedStorage implements StorageInterface
         return $results;
     }
 
-    public function set($key, $value, $expiration = null)
+    public function set($key, $value, $expiration = 0)
     {
         $memcached = $this->getMemcachedResource();
         if (!$memcached->set($key, $value, $expiration)) {
@@ -76,7 +76,7 @@ class MemcachedStorage implements StorageInterface
         return true;
     }
 
-    public function add($key, $value, $expiration = null)
+    public function add($key, $value, $expiration = 0)
     {
         $memcached = $this->getMemcachedResource();
         if (!$memcached->add($key, $value, $expiration)) {
@@ -90,7 +90,7 @@ class MemcachedStorage implements StorageInterface
         return true;
     }
 
-    public function increment($key, $value = 0, $expiration = null)
+    public function increment($key, $value = 0, $expiration = 0)
     {
         $memcached = $this->getMemcachedResource();
         $value = (int) $value;
